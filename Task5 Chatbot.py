@@ -1,158 +1,120 @@
-import socket
-import threading
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, filedialog
+from tkinter import scrolledtext
+import datetime
+import random
 
-# ================= SERVER =================
-HOST = '127.0.0.1'
-PORT = 1489
-LIMIT = 10
-active_clients = []
+# ================= BOT LOGIC =================
+def chatbot_reply(user_input):
+    user_input = user_input.lower()
 
-def send_message_to_all(message):
-    for user in active_clients:
-        try:
-            user[1].sendall(message.encode())
-        except:
-            pass
+    if any(word in user_input for word in ["hi", "hello", "hey"]):
+        return random.choice(["Hello 👋", "Hi there!", "Hey! How can I help?"])
 
-def listen_from_client(client, username):
-    while True:
-        try:
-            message = client.recv(2048).decode('utf-8')
-            if message:
-                final_msg = username + '~' + message
-                send_message_to_all(final_msg)
-        except:
-            break
+    elif "how are you" in user_input:
+        return "I'm working perfectly!"
 
-def client_handler(client):
-    while True:
-        try:
-            username = client.recv(2048).decode('utf-8')
-            if username:
-                active_clients.append((username, client))
-                send_message_to_all(f"SERVER~{username} joined chat")
-                break
-        except:
-            break
+    elif "your name" in user_input:
+        return "I am your Smart Chatbot 🤖"
 
-    threading.Thread(target=listen_from_client, args=(client, username), daemon=True).start()
+    elif "time" in user_input:
+        return datetime.datetime.now().strftime("Time: %H:%M")
 
-def start_server():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((HOST, PORT))
-    server.listen(LIMIT)
-    print(f"Server running on {HOST}:{PORT}")
+    elif "date" in user_input:
+        return datetime.datetime.now().strftime("Date: %d-%m-%Y")
 
-    while True:
-        client, addr = server.accept()
-        threading.Thread(target=client_handler, args=(client,), daemon=True).start()
+    elif "python" in user_input:
+        return "Python is great for AI, automation, and apps like this."
 
-# ================= CLIENT UI =================
+    elif "study" in user_input:
+        return "Stay consistent. Focus on concepts."
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    elif "motivate" in user_input:
+        return random.choice([
+            "Keep going 💪",
+            "Consistency beats talent",
+            "You can do it!"
+        ])
 
-# Colors (New Theme)
-BG_COLOR = "#1E1E2E"
-CARD_COLOR = "#2A2A3C"
-ACCENT = "#00C853"
-TEXT = "#FFFFFF"
+    elif "bye" in user_input:
+        return "Goodbye 👋"
 
-def add_message(msg, tag=None):
-    message_box.config(state=tk.NORMAL)
-    message_box.insert(tk.END, msg + "\n", tag)
-    message_box.config(state=tk.DISABLED)
-    message_box.see(tk.END)
+    else:
+        return random.choice([
+            "I didn't understand that.",
+            "Try asking differently.",
+            "I'm still learning 🤖"
+        ])
 
-def connect():
-    try:
-        client.connect((HOST, PORT))
-        username = username_entry.get()
-
-        if username == "":
-            messagebox.showerror("Error", "Enter username")
-            return
-
-        client.sendall(username.encode())
-        add_message("[SYSTEM] Connected to server")
-
-        threading.Thread(target=listen_messages, daemon=True).start()
-
-        username_entry.config(state=tk.DISABLED)
-        join_btn.config(state=tk.DISABLED)
-
-    except Exception as e:
-        messagebox.showerror("Error", str(e))
-
+# ================= SEND FUNCTION =================
 def send_message():
-    msg = message_entry.get()
+    user_msg = entry.get()
 
-    if msg == "":
+    if user_msg.strip() == "":
         return
 
-    client.sendall(msg.encode())
-    add_message(f"You: {msg}", "me")
-    message_entry.delete(0, tk.END)
+    time = datetime.datetime.now().strftime("%H:%M")
 
-def upload_file():
-    file = filedialog.askopenfilename()
-    if file:
-        add_message(f"You uploaded: {file}", "me")
+    chat_box.config(state=tk.NORMAL)
 
-def listen_messages():
-    while True:
-        try:
-            message = client.recv(2048).decode('utf-8')
-            if message:
-                username, content = message.split('~')
-                add_message(f"{username}: {content}", "other")
-        except:
-            break
+    # USER MESSAGE
+    chat_box.insert(tk.END, f"[{time}] You:\n{user_msg}\n", "user")
+
+    # BOT REPLY
+    reply = chatbot_reply(user_msg)
+    chat_box.insert(tk.END, f"[{time}] Bot:\n{reply}\n\n", "bot")
+
+    chat_box.config(state=tk.DISABLED)
+    chat_box.see(tk.END)
+
+    entry.delete(0, tk.END)
 
 # ================= UI =================
-
 root = tk.Tk()
-root.title("Chat Application")
-root.geometry("700x500")
-root.config(bg=BG_COLOR)
+root.title("Smart Chatbot")
+root.geometry("500x600")
+root.config(bg="#0F172A")  # dark blue background
 
-# Top
-top_frame = tk.Frame(root, bg=BG_COLOR)
-top_frame.pack(fill="x")
+# Header
+header = tk.Label(root, text="🤖 Smart Chatbot", bg="#1E293B", fg="white",
+                  font=("Helvetica", 16, "bold"), pady=10)
+header.pack(fill="x")
 
-tk.Label(top_frame, text="Username:", bg=BG_COLOR, fg=TEXT).pack(side="left", padx=5)
+# Chat area
+chat_box = scrolledtext.ScrolledText(
+    root,
+    wrap=tk.WORD,
+    font=("Helvetica", 12),
+    bg="#020617",
+    fg="white",
+    bd=0
+)
+chat_box.pack(padx=10, pady=10, fill="both", expand=True)
+chat_box.config(state=tk.DISABLED)
 
-username_entry = tk.Entry(top_frame)
-username_entry.pack(side="left", padx=5)
+# Styling messages
+chat_box.tag_config("user",
+                    background="#2563EB",
+                    foreground="white",
+                    spacing1=5,
+                    spacing3=5,
+                    lmargin1=50)
 
-join_btn = tk.Button(top_frame, text="Join", bg=ACCENT, fg="black", command=connect)
-join_btn.pack(side="left", padx=5)
+chat_box.tag_config("bot",
+                    background="#16A34A",
+                    foreground="white",
+                    spacing1=5,
+                    spacing3=10,
+                    rmargin=50)
 
-# Chat box
-message_box = scrolledtext.ScrolledText(root, bg=CARD_COLOR, fg=TEXT)
-message_box.pack(fill="both", expand=True, padx=10, pady=10)
-message_box.config(state=tk.DISABLED)
+# Input area
+bottom_frame = tk.Frame(root, bg="#0F172A")
+bottom_frame.pack(fill="x", pady=5)
 
-message_box.tag_config("me", foreground="#00E5FF")
-message_box.tag_config("other", foreground="#FFFFFF")
+entry = tk.Entry(bottom_frame, font=("Helvetica", 12), bg="#1E293B", fg="white", insertbackground="white")
+entry.pack(side="left", fill="x", expand=True, padx=10, pady=10)
 
-# Bottom
-bottom_frame = tk.Frame(root, bg=BG_COLOR)
-bottom_frame.pack(fill="x")
-
-message_entry = tk.Entry(bottom_frame)
-message_entry.pack(side="left", fill="x", expand=True, padx=5)
-
-send_btn = tk.Button(bottom_frame, text="Send", bg=ACCENT, command=send_message)
-send_btn.pack(side="left", padx=5)
-
-upload_btn = tk.Button(bottom_frame, text="Upload", bg=ACCENT, command=upload_file)
-upload_btn.pack(side="left", padx=5)
-
-# ================= MAIN =================
-
-# Start server in background
-threading.Thread(target=start_server, daemon=True).start()
+send_btn = tk.Button(bottom_frame, text="Send", command=send_message,
+                     bg="#22C55E", fg="black", font=("Helvetica", 10, "bold"))
+send_btn.pack(side="right", padx=10)
 
 root.mainloop()
